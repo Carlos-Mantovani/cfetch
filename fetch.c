@@ -5,6 +5,9 @@
 
 #define BUFFER_SIZE 32
 
+#define RED "\033[1;31m"
+#define RESET "\033[1;0m"
+
 //takes a matrix as parameter and put the strings at the right places
 void get_kernel_info(char kernel_info[3][BUFFER_SIZE]) {
     char buffer[128];
@@ -95,30 +98,30 @@ int main(void) {
     char host[32];
     get_command_output(host, "hostname");
     
-    printf("\033[1;31m%s\033[0m@\033[1;31m%s\033[0m\n", user, host);
+    printf("%s%s%s@%s%s%s\n", RED, user, RESET, RED, host, RESET);
  
     //print os name
     char os[BUFFER_SIZE];
     get_os(os);
-    printf("\033[1;31mOS\033[0m: %s\n", os);
+    printf("%sOS%s: %s\n", RED, RESET, os);
     
     //print kernel information
     char kernel_info[3][BUFFER_SIZE];
     get_kernel_info(kernel_info);
 
-    printf("\033[1;31mKernel\033[0m: %s\n", kernel_info[0]);
-    printf("\033[1;31mRelease\033[0m: %s\n", kernel_info[1]);
-    printf("\033[1;31mMachine\033[0m: %s\n", kernel_info[2]);
+    printf("%sKernel%s: %s\n", RED, RESET, kernel_info[0]);
+    printf("%sRelease%s: %s\n", RED, RESET, kernel_info[1]);
+    printf("%sMachine%s: %s\n", RED, RESET, kernel_info[2]);
 
     //print terminal emulator name
     char *term = getenv("TERM");
     if (term != NULL) 
-        printf("\033[1;31mTerminal\033[0m: %s\n", term);
+        printf("%sTerminal%s: %s\n", RED, RESET, term);
     else
         printf("Unknown");
 
     //print the currently used shell and version
     char shell_v[32];
     get_shell(shell_v);
-    printf("\033[1;31mShell\033[0m: %s\n", shell_v);
+    printf("%sShell%s: %s\n", RED, RESET, shell_v);
 }
