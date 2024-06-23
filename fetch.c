@@ -76,8 +76,9 @@ void get_uptime(char buffer[BUFFER_SIZE]) {
 
 void get_shell(char shell_v[BUFFER_SIZE]) {
     //get shell env
-    char *shell = getenv("SHELL");
-    shell += strlen("\\bin\\");
+    char *shell_path = getenv("SHELL");
+    //shell += strlen("\\bin\\");
+    char *shell = strtok(shell_path, "/bin/");
 
     //execute shell env plus "--version" to get the version
     char command[50];
