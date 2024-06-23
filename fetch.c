@@ -11,7 +11,6 @@
 //takes a matrix as parameter and put the strings at the right places
 void get_kernel_info(char kernel_info[3][BUFFER_SIZE]) {
     char buffer[128];
-
     FILE *fp = popen("uname -srm", "r");
     if (fp == NULL) {
         perror("Could not open pipe for output.\n");
@@ -48,25 +47,34 @@ void get_os(char os[BUFFER_SIZE]) {
             token = strtok(NULL, "\"");
             strncpy(os, token, BUFFER_SIZE);
             break;
-        }
+         }
     }
 }
 
-void get_command_output(char buffer[32], char *command) {
+void get_command_output(char buffer[BUFFER_SIZE], char *command) {
     FILE *fp = popen(command, "r");
     if (fp == NULL) {
         perror("Chould not open pipe for output.\n");
         exit(EXIT_FAILURE);
     }
 
-    if (fgets(buffer, 32, fp) == NULL) {
+    if (fgets(buffer, BUFFER_SIZE, fp) == NULL) {
         perror("Failed to write to the buffer.\n");
         exit(EXIT_FAILURE);
     }
     buffer[strlen(buffer) - 1] = '\0';
 }
 
-void get_shell(char shell_v[32]) {
+void get_uptime(char buffer[BUFFER_SIZE]) {
+    get_command_output(buffer, "uptime -p");
+    unsigned int i = 0;
+    do {
+        buffer[i] = buffer[i + 3];
+        i++;
+    } while (buffer[i - 1] != '\0');
+}
+
+void get_shell(char shell_v[BUFFER_SIZE]) {
     //get shell env
     char *shell = getenv("SHELL");
     shell += strlen("\\bin\\");
@@ -90,12 +98,32 @@ void get_shell(char shell_v[32]) {
     shell_v[length - 1] = '\0';
 }
 
+void get_packages(char buffer[BUFFER_SIZE * 2], char *os) {
+    char *os_name = strtok(os, " ");
+    if (strcmp(os_name, "Fedora") == 0) {
+        char dnf[50];
+        char rpm[50];
+        char flatpak[50];
+        get_command_output(dnf, "dnf repoquery --installed | wc -l");
+        get_command_output(rpm, "rpm -qa | wc -l");
+        get_command_output(flatpak, "flatpak list | wc -l");
+        snprintf(buffer, BUFFER_SIZE * 2, "%s (dnf), %s (rpm), %s (flatpak)", dnf, rpm, flatpak);
+    }
+    if (strcmp(os_name, "Ubuntu") == 0) {
+        char apt[50];
+        char snap[50];
+        get_command_output(apt, "apt list --installed | wc -l");
+        get_command_output(snap, "snap list | wc -l");
+        snprintf(buffer, BUFFER_SIZE * 2, "%s (apt), %s (snap)", apt, snap);
+    }
+}
+
 int main(void) {
     //print username and hostname
-    char user[32];
+    char user[BUFFER_SIZE];
     get_command_output(user, "whoami");
 
-    char host[32];
+    char host[BUFFER_SIZE];
     get_command_output(host, "hostname");
     
     printf("%s%s%s@%s%s%s\n", RED, user, RESET, RED, host, RESET);
@@ -113,6 +141,16 @@ int main(void) {
     printf("%sRelease%s: %s\n", RED, RESET, kernel_info[1]);
     printf("%sMachine%s: %s\n", RED, RESET, kernel_info[2]);
 
+    //print system uptime
+    char uptime[BUFFER_SIZE];
+    get_uptime(uptime);
+    printf("%sUptime%s: %s\n", RED, RESET, uptime);
+
+    //print the number of installed packages
+    char packages[BUFFER_SIZE * 2];
+    get_packages(packages, os);
+    printf("%sPackages%s: %s\n", RED, RESET, packages);
+
     //print terminal emulator name
     char *term = getenv("TERM");
     if (term != NULL) 
@@ -123,5 +161,5 @@ int main(void) {
     //print the currently used shell and version
     char shell_v[32];
     get_shell(shell_v);
-    printf("%sShell%s: %s\n", RED, RESET, shell_v);
+    printf("%sShell%s: %s\n", RED, RESET, shell_v);    
 }
