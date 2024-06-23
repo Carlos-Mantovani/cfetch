@@ -78,7 +78,7 @@ void get_shell(char shell_v[BUFFER_SIZE]) {
     //get shell env
     char *shell_path = getenv("SHELL");
     //shell += strlen("\\bin\\");
-    char *shell = strtok(shell_path, "/bin/");
+    char *shell = strrchr(shell_path, '/') + 1;
 
     //execute shell env plus "--version" to get the version
     char command[50];
