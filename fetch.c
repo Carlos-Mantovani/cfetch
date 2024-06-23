@@ -119,8 +119,8 @@ void get_packages(char buffer[BUFFER_SIZE * 2], char *os) {
     if(strcmp(os_name, "Arch") == 0) {
         char pacman[50];
         char AUR[50];
-        get_command_output(pacman, "pacman -Q | wl -l");
-        get_command_output(AUR, "yay -Qm | wl -l");
+        get_command_output(pacman, "pacman -Q | wc -l");
+        get_command_output(AUR, "yay -Qm | wc -l");
         snprintf(buffer, BUFFER_SIZE * 2, "%s (pacman), %s (AUR)", pacman, AUR);
     }
 }
