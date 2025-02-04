@@ -117,6 +117,11 @@ void get_packages(char buffer[BUFFER_SIZE * 2], char *os) {
         get_command_output(snap, "snap list | wc -l");
         snprintf(buffer, BUFFER_SIZE * 2, "%s (apt), %s (snap)", apt, snap);
     }
+    if (strcmp(os_name, "Linux") == 0) {
+        char apt[50];
+        get_command_output(apt, "dpkg --get-selections | wc -l");
+        snprintf(buffer, BUFFER_SIZE * 2, "%s (apt)", apt);
+    }
     if(strcmp(os_name, "Arch") == 0) {
         char pacman[50];
         char AUR[50];
