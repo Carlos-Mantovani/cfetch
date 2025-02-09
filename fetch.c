@@ -101,6 +101,7 @@ void get_shell(char shell_v[BUFFER_SIZE]) {
 
 void get_packages(char buffer[BUFFER_SIZE * 2], char *os) {
     char *os_name = strtok(os, " ");
+    char *os_second_name = strtok(NULL, " ");
     if (strcmp(os_name, "Fedora") == 0) {
         char dnf[50];
         char rpm[50];
@@ -117,7 +118,7 @@ void get_packages(char buffer[BUFFER_SIZE * 2], char *os) {
         get_command_output(snap, "snap list | wc -l");
         snprintf(buffer, BUFFER_SIZE * 2, "%s (apt), %s (snap)", apt, snap);
     }
-    if (strcmp(os_name, "Linux") == 0) {
+    if (strcmp(os_name, "Linux") == 0 && strcmp(os_second_name, "Mint") == 0) {
         char apt[50];
         get_command_output(apt, "dpkg --get-selections | wc -l");
         snprintf(buffer, BUFFER_SIZE * 2, "%s (apt)", apt);
