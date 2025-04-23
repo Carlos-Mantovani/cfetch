@@ -42,6 +42,8 @@ void get_os(char os[OS_NAME_LENGTH]) {
     FILE *fp = fopen("/etc/os-release", "r");
     if (fp == NULL) {
         perror("Couldn't open file /etc/os-release");
+        strncpy(os, "Unknown", OS_NAME_LENGTH);
+        return;
     }
     char buffer[OS_NAME_LENGTH];
     while (fgets(buffer, sizeof(buffer), fp)) {
@@ -70,7 +72,7 @@ void get_command_output(char buffer[BUFFER_SIZE], char *command) {
     }
     buffer[strlen(buffer) - 1] = '\0';
 
-    fclose(fp);
+    pclose(fp);
 }
 
 void get_uptime(char buffer[BUFFER_SIZE]) {
