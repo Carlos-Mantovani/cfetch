@@ -127,7 +127,7 @@ void get_packages(char buffer[BUFFER_SIZE * 2], char *os) {
         get_command_output(snap, "snap list | wc -l");
         snprintf(buffer, BUFFER_SIZE * 2, "%s (apt), %s (snap)", apt, snap);
     }
-    if (strstr(os, "Linux Mint")) {
+    if (strstr(os, "Linux Mint") || strstr(os, "Pop!_OS")) {
         char apt[50];
         get_command_output(apt, "dpkg --get-selections | wc -l");
         snprintf(buffer, BUFFER_SIZE * 2, "%s (apt)", apt);
