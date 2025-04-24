@@ -142,12 +142,13 @@ void get_packages(char buffer[BUFFER_SIZE * 2], char *os) {
 }
 
 void get_terminal(char terminal[BUFFER_SIZE]) {
-    char *term_name = getenv("TERM");
-    if (!term_name) {
+    char command[CMD_BUFFER_SIZE] = "ps -o comm= -p $(ps -o ppid= -p $(ps -o ppid= -p $(ps -o ppid= -p $$)))";
+    get_command_output(terminal, command);
+
+    if (strlen(terminal) == 0) {
         strncpy(terminal, "Unknown", BUFFER_SIZE);
-        return;
+        terminal[BUFFER_SIZE - 1] = '\0';
     }
-    strncpy(terminal, term_name, BUFFER_SIZE);
 }
 
 int main(void) {
