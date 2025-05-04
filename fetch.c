@@ -4,6 +4,7 @@
 #include <syslog.h>
 
 #define BUFFER_SIZE 32
+#define LARGER_BUFFER_SIZE 64
 #define CMD_BUFFER_SIZE 128
 #define OS_NAME_LENGTH 64
 
@@ -59,15 +60,16 @@ void get_os(char os[OS_NAME_LENGTH]) {
     fclose(fp);
 }
 
-void get_command_output(char buffer[BUFFER_SIZE], char *command) {
+void get_command_output(char *buffer, size_t buffer_size, char *command) {
     FILE *fp = popen(command, "r");
     if (fp == NULL) {
         perror("Chould not open pipe for output.\n");
         exit(EXIT_FAILURE);
     }
 
-    if (fgets(buffer, BUFFER_SIZE, fp) == NULL) {
+    if (fgets(buffer, buffer_size, fp) == NULL) {
         perror("Failed to write to the buffer.\n");
+        pclose(fp);
         exit(EXIT_FAILURE);
     }
     buffer[strlen(buffer) - 1] = '\0';
@@ -76,7 +78,7 @@ void get_command_output(char buffer[BUFFER_SIZE], char *command) {
 }
 
 void get_uptime(char buffer[BUFFER_SIZE]) {
-    get_command_output(buffer, "uptime -p");
+    get_command_output(buffer, LARGER_BUFFER_SIZE, "uptime -p");
     unsigned int i = 0;
     do {
         buffer[i] = buffer[i + 3];
@@ -96,7 +98,7 @@ void get_shell(char shell_v[BUFFER_SIZE]) {
     snprintf(command, CMD_BUFFER_SIZE, "%s --version", shell_path);
 
     char buffer[CMD_BUFFER_SIZE];
-    get_command_output(buffer, command);
+    get_command_output(buffer, BUFFER_SIZE, command);
 
     char *newline = strchr(buffer, '\n');
     if (newline) *newline = '\0';
@@ -115,35 +117,35 @@ void get_packages(char buffer[BUFFER_SIZE * 2], char *os) {
         char dnf[50];
         char rpm[50];
         char flatpak[50];
-        get_command_output(dnf, "dnf repoquery --installed | wc -l");
-        get_command_output(rpm, "rpm -qa | wc -l");
-        get_command_output(flatpak, "flatpak list | wc -l");
+        get_command_output(dnf, BUFFER_SIZE, "dnf repoquery --installed | wc -l");
+        get_command_output(rpm, BUFFER_SIZE, "rpm -qa | wc -l");
+        get_command_output(flatpak, BUFFER_SIZE, "flatpak list | wc -l");
         snprintf(buffer, BUFFER_SIZE * 2, "%s (dnf), %s (rpm), %s (flatpak)", dnf, rpm, flatpak);
     }
     if (strstr(os, "Ubuntu")) {
         char apt[50];
         char snap[50];
-        get_command_output(apt, "dpkg --get-selections | wc -l");
-        get_command_output(snap, "snap list | wc -l");
+        get_command_output(apt, BUFFER_SIZE , "dpkg --get-selections | wc -l");
+        get_command_output(snap, BUFFER_SIZE , "snap list | wc -l");
         snprintf(buffer, BUFFER_SIZE * 2, "%s (apt), %s (snap)", apt, snap);
     }
     if (strstr(os, "Linux Mint") || strstr(os, "Pop!_OS")) {
         char apt[50];
-        get_command_output(apt, "dpkg --get-selections | wc -l");
+        get_command_output(apt, BUFFER_SIZE, "dpkg --get-selections | wc -l");
         snprintf(buffer, BUFFER_SIZE * 2, "%s (apt)", apt);
     }
     if(strstr(os, "Arch")) {
         char pacman[50];
         char AUR[50];
-        get_command_output(pacman, "pacman -Q | wc -l");
-        get_command_output(AUR, "yay -Qm | wc -l");
+        get_command_output(pacman, BUFFER_SIZE, "pacman -Q | wc -l");
+        get_command_output(AUR, BUFFER_SIZE, "yay -Qm | wc -l");
         snprintf(buffer, BUFFER_SIZE * 2, "%s (pacman), %s (AUR)", pacman, AUR);
     }
 }
 
 void get_terminal(char terminal[BUFFER_SIZE]) {
     char command[CMD_BUFFER_SIZE] = "ps -o comm= -p $(ps -o ppid= -p $(ps -o ppid= -p $(ps -o ppid= -p $$)))";
-    get_command_output(terminal, command);
+    get_command_output(terminal, BUFFER_SIZE, command);
 
     if (strlen(terminal) == 0) {
         strncpy(terminal, "Unknown", BUFFER_SIZE);
@@ -151,12 +153,44 @@ void get_terminal(char terminal[BUFFER_SIZE]) {
     }
 }
 
+void get_cpu(char cpu[LARGER_BUFFER_SIZE * 2]) {
+    /*
+    FILE *fp = fopen("/proc/cpuinfo", "r");
+    if (fp == NULL) {
+        perror("Couldn't open file /proc/cpuinfo");
+        strncpy(cpu, "Unknown", LARGER_BUFFER_SIZE);
+        return;
+    }
+    char buffer[LARGER_BUFFER_SIZE];
+    while (fgets(buffer, sizeof(buffer), fp)) {
+        if (strncmp(buffer, "model name", 10) == 0) {
+            char *token = strstr(buffer, ": ");
+            token += 2;
+            token[strcspn(token, "\n")] = '\0';
+            strncpy(cpu, token, LARGER_BUFFER_SIZE);
+            cpu[LARGER_BUFFER_SIZE - 1] = '\0';
+            break;
+        }
+    }
+    fclose(fp);
+    */
+    get_command_output(cpu, LARGER_BUFFER_SIZE * 2, "grep 'model name' /proc/cpuinfo | head -n1 | cut -d':' -f2-");
+    //char *trim = cpu;
+    //trim++;
+    memmove(cpu, cpu+1, strlen(cpu) + 1);
+}
+
+void get_gpu(char gpu[LARGER_BUFFER_SIZE * 2]) {
+    get_command_output(gpu, LARGER_BUFFER_SIZE * 2, "lspci | grep VGA | cut -d':' -f3-");
+    memmove(gpu, gpu+1, strlen(gpu) + 1);
+}
+
 int main(void) {
     //get username and hostname
     char user[BUFFER_SIZE];
-    get_command_output(user, "whoami");
+    get_command_output(user, BUFFER_SIZE, "whoami");
     char host[BUFFER_SIZE];
-    get_command_output(host, "hostname");
+    get_command_output(host, BUFFER_SIZE, "hostname");
     //get os name
     char os[OS_NAME_LENGTH];
     get_os(os);
@@ -175,6 +209,12 @@ int main(void) {
     //get the currently used shell and version
     char shell_v[32];
     get_shell(shell_v);
+    //get cpu model
+    char cpu[LARGER_BUFFER_SIZE * 2];
+    get_cpu(cpu);
+    //get gpu model
+    char gpu[LARGER_BUFFER_SIZE * 2];
+    get_gpu(gpu);
 
     printf("%s%s%s@%s%s%s\n", RED, user, RESET, RED, host, RESET);
     printf("%sOS%s: %s\n", RED, RESET, os);
@@ -183,4 +223,6 @@ int main(void) {
     printf("%sPackages%s: %s\n", RED, RESET, packages);
     printf("%sTerminal%s: %s\n", RED, RESET, terminal);
     printf("%sShell%s: %s\n", RED, RESET, shell_v);    
+    printf("%sCPU%s: %s\n", RED, RESET, cpu);
+    printf("%sGPU%s: %s\n", RED, RESET, gpu);
 }
